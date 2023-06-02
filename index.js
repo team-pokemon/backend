@@ -2,6 +2,8 @@ import express from "express";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
+import  jwt  from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 
 mongoose
   .connect("mongodb://127.0.0.1:27017", { dbName: "backenf" })
@@ -12,8 +14,9 @@ mongoose
     console.log(e);
   });
 const userSchema = mongoose.Schema({
-  name: String,
+  
   email: String,
+  password:String
 });
 const user = mongoose.model("user", userSchema);
 
@@ -21,7 +24,6 @@ const app = express();
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
 
 app.set("view engine", "ejs");
 const isAuthenticated = (req, res, next) => {
@@ -44,9 +46,13 @@ app.get("/login", (req, res) => {
   res.render("login");
 });
 app.post("/login", async (req, res) => {
-console.log(req.body);
-  // const User= await user.create();
-  res.cookie("token","sub", {
+  console.log(req.body);
+  const token = jwt.sign({ _id: User._id }, "sdjasdbajsdbjasd");
+
+  const { email, password } = req.body;
+  // Create a new user with the email and hashed password
+  const User = await user.create({ email, password });
+  res.cookie("token", "sub", {
     httpOnly: true,
   });
 
