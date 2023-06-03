@@ -45,10 +45,32 @@ const User = mongoose.model("User", UserSchema);
 const photoSchema = new mongoose.Schema({
   filename: String,
   contentType: String,
+  data: Buffer,
   uploadedAt: { type: Date, default: Date.now }
 });
 const Photo = mongoose.model('Photo', photoSchema);
 // Handle the POST request to upload a photo
+app.post('/photos', upload.single('photo'), async (req, res) => {
+  const { filename, mimetype, buffer } = req.file;
+
+  try {
+    // Create a new instance of the Photo model
+    const photo = new Photo({
+      filename,
+      contentType:mimetype ,
+      data: buffer
+    });
+
+    // Save the photo to MongoDB
+    const savedPhoto = await photo.save();
+    console.log('Photo uploaded successfully');
+    res.json({ message: 'Photo uploaded successfully' ,
+  filename,mimetype,buffer});
+  } catch (error) {
+    console.error('Failed to save the photo:', error);
+    res.status(500).json({ error: 'Failed to save the photo' });
+  }
+});
 app.get('/photos', async (req, res) => {
   try {
     const photos = await Photo.find();
@@ -58,24 +80,19 @@ app.get('/photos', async (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve photos' });
   }
 });
-app.post('/photos', upload.single('photo'), async (req, res) => {
-  const { filename, mimetype, buffer } = req.file;
-
+app.get('/photos/:id', async (req, res) => {
   try {
-    // Create a new instance of the Photo model
-    const photo = new Photo({
-      filename,
-      contentType:mimetype ,
-    });
+    const photo = await Photo.findById(req.params.id);
+    if (!photo) {
+      return res.status(404).json({ error: 'Photo not found' });
+    }
 
-    // Save the photo to MongoDB
-    const savedPhoto = await photo.save();
-    console.log('Photo uploaded successfully');
-    res.json({ message: 'Photo uploaded successfully' ,
-  filename,mimetype});
+    res.set('Content-Type', photo.contentType);
+    res.set('Content-Disposition', `attachment; filename=${photo.filename}`);
+    res.send(photo.data);
   } catch (error) {
-    console.error('Failed to save the photo:', error);
-    res.status(500).json({ error: 'Failed to save the photo' });
+    console.error('Failed to retrieve photo:', error);
+    res.status(500).json({ error: 'Failed to retrieve photo' });
   }
 });
 
