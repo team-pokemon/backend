@@ -22,7 +22,8 @@ const app = express();
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-const upload = multer({ dest: 'uploads/' });
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 app.set("view engine", "ejs");
 const isAuthenticated = async (req, res, next) => {
@@ -51,21 +52,18 @@ const photoSchema = new mongoose.Schema({
 const Photo = mongoose.model('Photo', photoSchema);
 // Handle the POST request to upload a photo
 app.post('/photos', upload.single('photo'), async (req, res) => {
-  const { filename, mimetype, buffer } = req.file;
-
   try {
-    // Create a new instance of the Photo model
+    const { filename, mimetype, buffer } = req.file;
+
     const photo = new Photo({
       filename,
-      contentType:mimetype ,
+      contentType: mimetype,
       data: buffer
     });
 
-    // Save the photo to MongoDB
     const savedPhoto = await photo.save();
     console.log('Photo uploaded successfully');
-    res.json({ message: 'Photo uploaded successfully' ,
-  filename,mimetype,buffer});
+    res.json({ message: 'Photo uploaded successfully' });
   } catch (error) {
     console.error('Failed to save the photo:', error);
     res.status(500).json({ error: 'Failed to save the photo' });
